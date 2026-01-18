@@ -1,0 +1,38 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SkeletalAnimation", "SkeletalAnimation\SkeletalAnimation.vcxproj", "{DA1B96BB-01C3-4917-952B-83CADA29A63C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ShadowMapping", "ShadowMapping\ShadowMapping.vcxproj", "{3872C94A-0B7E-4218-A5D3-6DFB73037967}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Debug|Win32.Build.0 = Debug|Win32
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Debug|x64.ActiveCfg = Debug|x64
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Debug|x64.Build.0 = Debug|x64
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Release|Win32.ActiveCfg = Release|Win32
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Release|Win32.Build.0 = Release|Win32
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Release|x64.ActiveCfg = Release|x64
+		{DA1B96BB-01C3-4917-952B-83CADA29A63C}.Release|x64.Build.0 = Release|x64
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Debug|Win32.Build.0 = Debug|Win32
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Debug|x64.ActiveCfg = Debug|x64
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Debug|x64.Build.0 = Debug|x64
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Release|Win32.ActiveCfg = Release|Win32
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Release|Win32.Build.0 = Release|Win32
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Release|x64.ActiveCfg = Release|x64
+		{3872C94A-0B7E-4218-A5D3-6DFB73037967}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
