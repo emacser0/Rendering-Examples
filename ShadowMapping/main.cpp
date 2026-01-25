@@ -1,6 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
+#include <sstream>
 
 // NOTE: Ensure GLEW, GLFW, and GLM are included in your project's include paths and linked correctly.
 #include "GL/glew.h"
@@ -37,141 +39,9 @@ float lastFrame = 0.0f;
 glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
 
 // ------------------------------------------------------------------------------------------------
-// Shader Sources
-// ------------------------------------------------------------------------------------------------
-
-// 1. Shadow Map Shader (Depth Shader)
-const char* shadowMapVertexShaderSource = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-
-uniform mat4 lightSpaceMatrix;
-uniform mat4 model;
-
-void main()
-{
-    gl_Position = lightSpaceMatrix * model * vec4(aPos, 1.0);
-}
-)";
-
-const char* shadowMapFragmentShaderSource = R"(
-#version 330 core
-
-void main()
-{             
-    // gl_FragDepth = gl_FragCoord.z;
-}
-)";
-
-// 2. Scene Shader (with Shadow Calculation)
-const char* sceneVertexShaderSource = R"(
-#version 330 core
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec3 aNormal;
-layout (location = 2) in vec2 aTexCoords;
-
-out vec3 FragPos;
-out vec3 Normal;
-out vec2 TexCoords;
-out vec4 FragPosLightSpace;
-
-uniform mat4 projection;
-uniform mat4 view;
-uniform mat4 model;
-uniform mat4 lightSpaceMatrix;
-
-void main()
-{
-    FragPos = vec3(model * vec4(aPos, 1.0));
-    Normal = transpose(inverse(mat3(model))) * aNormal;
-    TexCoords = aTexCoords;
-    FragPosLightSpace = lightSpaceMatrix * vec4(FragPos, 1.0);
-    gl_Position = projection * view * vec4(FragPos, 1.0);
-}
-)";
-
-const char* sceneFragmentShaderSource = R"(
-#version 330 core
-out vec4 FragColor;
-
-in vec3 FragPos;
-in vec3 Normal;
-in vec2 TexCoords;
-in vec4 FragPosLightSpace;
-
-uniform sampler2D shadowMap;
-uniform vec3 lightPos;
-uniform vec3 viewPos;
-
-float ShadowCalculation(vec4 fragPosLightSpace)
-{
-    // perform perspective divide
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
-    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth = texture(shadowMap, projCoords.xy).r; 
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // calculate bias (based on depth map resolution and slope)
-    vec3 normal = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
-    // check whether current frag pos is in shadow
-    // float shadow = currentDepth - bias > closestDepth  ? 1.0 : 0.0;
-    // PCF
-    float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
-    for(int x = -1; x <= 1; ++x)
-    {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
-        }    
-    }
-    shadow /= 9.0;
-    
-    // keep the shadow at 0.0 when outside the far_plane region of the light's frustum.
-    if(projCoords.z > 1.0)
-        shadow = 0.0;
-        
-    return shadow;
-}
-
-void main()
-{           
-    vec3 color = vec3(1.0); // White object
-    vec3 normal = normalize(Normal);
-    vec3 lightColor = vec3(1.0);
-    
-    // ambient
-    vec3 ambient = 0.15 * color;
-    
-    // diffuse
-    vec3 lightDir = normalize(lightPos - FragPos);
-    float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * lightColor;
-    
-    // specular
-    vec3 viewDir = normalize(viewPos - FragPos);
-    float spec = 0.0;
-    vec3 halfwayDir = normalize(lightDir + viewDir);  
-    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
-    vec3 specular = spec * lightColor;    
-    
-    // calculate shadow
-    float shadow = ShadowCalculation(FragPosLightSpace);       
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
-    
-    FragColor = vec4(lighting, 1.0);
-}
-)";
-
-// ------------------------------------------------------------------------------------------------
 // Helper Functions
 // ------------------------------------------------------------------------------------------------
-void checkCompileErrors(GLuint shader, string type) {
+void CheckCompileErrors(GLuint shader, string type) {
     GLint success;
     GLchar infoLog[1024];
     if (type != "PROGRAM") {
@@ -189,8 +59,24 @@ void checkCompileErrors(GLuint shader, string type) {
     }
 }
 
+std::string ReadFile(const std::string& Path)
+{
+    std::ifstream File(Path);
+    std::stringstream Buffer;
+    if (File)
+    {
+        Buffer << File.rdbuf();
+        return Buffer.str();
+    }
+    else
+    {
+        std::cout << "Failed to open file: " << Path << std::endl;
+        return "";
+    }
+}
+
 unsigned int planeVAO = 0;
-void renderScene(GLuint shader)
+void RenderScene(GLuint shader)
 {
     // Floor
     glm::mat4 model = glm::mat4(1.0f);
@@ -405,43 +291,55 @@ int main(int argc, char* argv[])
         cout << "Failed to initialize GLEW" << endl;
         return -1;
     }
+    
+    std::string shadowMapVertexShaderSource = ReadFile("Shaders/shadow.vert");
+    std::string shadowMapFragmentShaderSource = ReadFile("Shaders/shadow.frag");
+    
+    const char* shadowMapVertexShaderSourceCStr = shadowMapVertexShaderSource.c_str();
+    const char* shadowMapFragmentShaderSourceCStr = shadowMapFragmentShaderSource.c_str();
 
     // 3. Compile Shaders
     // Shadow Map Shader
     GLuint simpleDepthShader = glCreateProgram();
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &shadowMapVertexShaderSource, NULL);
+    glShaderSource(vertexShader, 1, &shadowMapVertexShaderSourceCStr, NULL);
     glCompileShader(vertexShader);
-    checkCompileErrors(vertexShader, "VERTEX");
+    CheckCompileErrors(vertexShader, "VERTEX");
     
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &shadowMapFragmentShaderSource, NULL);
+    glShaderSource(fragmentShader, 1, &shadowMapFragmentShaderSourceCStr, NULL);
     glCompileShader(fragmentShader);
-    checkCompileErrors(fragmentShader, "FRAGMENT");
+    CheckCompileErrors(fragmentShader, "FRAGMENT");
     
     glAttachShader(simpleDepthShader, vertexShader);
     glAttachShader(simpleDepthShader, fragmentShader);
     glLinkProgram(simpleDepthShader);
-    checkCompileErrors(simpleDepthShader, "PROGRAM");
+    CheckCompileErrors(simpleDepthShader, "PROGRAM");
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    
+    std::string sceneVertexShaderSource = ReadFile("Shaders/scene.vert");
+    std::string sceneFragmentShaderSource = ReadFile("Shaders/scene.frag");
+    
+    const char* sceneVertexShaderSourceCStr = sceneVertexShaderSource.c_str();
+    const char* sceneFragmentShaderSourceCStr = sceneFragmentShaderSource.c_str();
 
     // Scene Shader
     GLuint sceneShader = glCreateProgram();
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertexShader, 1, &sceneVertexShaderSource, NULL);
+    glShaderSource(vertexShader, 1, &sceneVertexShaderSourceCStr, NULL);
     glCompileShader(vertexShader);
-    checkCompileErrors(vertexShader, "VERTEX");
+    CheckCompileErrors(vertexShader, "VERTEX");
     
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &sceneFragmentShaderSource, NULL);
+    glShaderSource(fragmentShader, 1, &sceneFragmentShaderSourceCStr, NULL);
     glCompileShader(fragmentShader);
-    checkCompileErrors(fragmentShader, "FRAGMENT");
+    CheckCompileErrors(fragmentShader, "FRAGMENT");
     
     glAttachShader(sceneShader, vertexShader);
     glAttachShader(sceneShader, fragmentShader);
     glLinkProgram(sceneShader);
-    checkCompileErrors(sceneShader, "PROGRAM");
+    CheckCompileErrors(sceneShader, "PROGRAM");
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -501,7 +399,7 @@ int main(int argc, char* argv[])
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
             glClear(GL_DEPTH_BUFFER_BIT);
-            renderScene(simpleDepthShader);
+            RenderScene(simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 2. Render scene as normal with shadow mapping (using depth map)
@@ -521,7 +419,7 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         
-        renderScene(sceneShader);
+        RenderScene(sceneShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

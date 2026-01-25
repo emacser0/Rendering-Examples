@@ -207,7 +207,7 @@ void main()
 // ------------------------------------------------------------------------------------------------
 // Helper Functions
 // ------------------------------------------------------------------------------------------------
-void checkCompileErrors(GLuint shader, string type) {
+void CheckCompileErrors(GLuint shader, string type) {
     GLint success;
     GLchar infoLog[1024];
     if (type != "PROGRAM") {
@@ -298,7 +298,7 @@ void renderCube()
     glBindVertexArray(0);
 }
 
-void renderScene(GLuint shader)
+void RenderScene(GLuint shader)
 {
     // Room cube
     glm::mat4 model = glm::mat4(1.0f);
@@ -443,23 +443,23 @@ int main(int argc, char* argv[])
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &shadowMapVertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    checkCompileErrors(vertexShader, "VERTEX");
+    CheckCompileErrors(vertexShader, "VERTEX");
     
     GLuint geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
     glShaderSource(geometryShader, 1, &shadowMapGeometryShaderSource, NULL);
     glCompileShader(geometryShader);
-    checkCompileErrors(geometryShader, "GEOMETRY");
+    CheckCompileErrors(geometryShader, "GEOMETRY");
 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &shadowMapFragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    checkCompileErrors(fragmentShader, "FRAGMENT");
+    CheckCompileErrors(fragmentShader, "FRAGMENT");
     
     glAttachShader(simpleDepthShader, vertexShader);
     glAttachShader(simpleDepthShader, geometryShader);
     glAttachShader(simpleDepthShader, fragmentShader);
     glLinkProgram(simpleDepthShader);
-    checkCompileErrors(simpleDepthShader, "PROGRAM");
+    CheckCompileErrors(simpleDepthShader, "PROGRAM");
     glDeleteShader(vertexShader);
     glDeleteShader(geometryShader);
     glDeleteShader(fragmentShader);
@@ -469,17 +469,17 @@ int main(int argc, char* argv[])
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &sceneVertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    checkCompileErrors(vertexShader, "VERTEX");
+    CheckCompileErrors(vertexShader, "VERTEX");
     
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &sceneFragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    checkCompileErrors(fragmentShader, "FRAGMENT");
+    CheckCompileErrors(fragmentShader, "FRAGMENT");
     
     glAttachShader(sceneShader, vertexShader);
     glAttachShader(sceneShader, fragmentShader);
     glLinkProgram(sceneShader);
-    checkCompileErrors(sceneShader, "PROGRAM");
+    CheckCompileErrors(sceneShader, "PROGRAM");
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
@@ -549,7 +549,7 @@ int main(int argc, char* argv[])
                 glUniformMatrix4fv(glGetUniformLocation(simpleDepthShader, ("shadowMatrices[" + std::to_string(i) + "]").c_str()), 1, GL_FALSE, glm::value_ptr(shadowTransforms[i]));
             glUniform1f(glGetUniformLocation(simpleDepthShader, "far_plane"), far_plane);
             glUniform3fv(glGetUniformLocation(simpleDepthShader, "lightPos"), 1, &lightPos[0]);
-            renderScene(simpleDepthShader);
+            RenderScene(simpleDepthShader);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // 2. Render scene as normal with shadow mapping (using depth map)
@@ -569,7 +569,7 @@ int main(int argc, char* argv[])
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, depthCubemap);
         
-        renderScene(sceneShader);
+        RenderScene(sceneShader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
